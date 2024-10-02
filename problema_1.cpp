@@ -3,6 +3,7 @@
 //2. Silva Reyes, Santiago Miguel
 //3. Meneses Roncal, Matias Alonso
 
+#include <vector>
 /**
  * Definition for a binary tree node.
  * struct TreeNode {
@@ -16,26 +17,29 @@
  */
 class Solution {
 public:
-    bool isSymmetric(TreeNode* root) {
+    void saveValue(TreeNode* root, vector<int>& values) {
         if (root == nullptr) {
-            return true;
-        }
-        return isMirror(root->left, root->right);
-    };
-    
-    bool isMirror(TreeNode* left, TreeNode* right) 
-    {
-        if (left == nullptr && right == nullptr) {
-            return true;
-        }
-        if (left == nullptr || right == nullptr) {
-            return false;
+            return;
         }
 
-        if (left->val != right->val) {
-            return false;
+        values.push_back(root->val);
+        saveValue(root->left, values);
+        saveValue(root->right, values);
+    }
+
+    int getMinimumDifference(TreeNode* root) {
+        vector<int> values;
+
+        saveValue(root, values);
+
+        sort(values.begin(), values.end());
+
+        int minAbsDiff = 10000000000000; 
+
+        for (int i = 1; i < values.size(); i++) {
+            minAbsDiff = min(minAbsDiff, values[i] - values[i - 1]);
         }
 
-        return isMirror(left->left, right->right) && isMirror(left->right, right->left);
+        return minAbsDiff;        
     }
 };
