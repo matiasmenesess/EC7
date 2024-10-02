@@ -1,364 +1,248 @@
+#include <cmath>
+#include <cstddef>
+#include <cstdio>
+#include <stdexcept>
 #include <iostream>
-#include <vector>
+
 using namespace std;
 
-template<typename T>
-struct Node{
+
+template <typename T>
+struct NodeBT{
     T data;
-    Node<T> * prev = nullptr;
-    Node<T> * next = nullptr;
+    int height;
+    NodeBT<T>* left;
+    NodeBT<T>* right;
+    NodeBT():left(nullptr),right(nullptr),height(0){}
+    explicit NodeBT(T value):data(value), height(0){
+        left = right = nullptr;
+    }    void killself(){
+        if(left != nullptr){left->killself();}
+        if(right != nullptr){right->killself();}
+        delete this;
+    }
 };
 
-template<typename T>
-class Double_Linked_List{
+template <typename T>
+class AVL{
+    NodeBT<T>* root;
+public:
+    AVL():root(nullptr){}
+    void insert(T value){
+        insert(root,value);
+    }
+    bool find(T value){
+        if(!root){
+            NodeBT<T>* nodo = find(root,value);
+            if(nodo != nullptr){return true;}
+        }
+        else{
+            return false;
+        }
+    }
+    int height(){
+        return height(root);
+    }
+    T minValue(){
+        if(root){
+            return minValue(root)->data;
+        }
+        throw std::invalid_argument("root not initialized\n");
+    }
+    T maxValue(){
+        if(root){return maxValue(root)->data;}
+        throw std::invalid_argument("root not initialized\n");
+    }
+    bool isBalanced(){
+        if(root){
+            return isBalanced(root);
+        }
+        else{
+            throw std::invalid_argument("root isnt initialized\n");
+        }
+    }
+    int size();
+    void remove(T value){
+        if(root){
+            remove(root,value);
+        }
+        else {
+            throw std::invalid_argument("root is not initialized\n");
+        }
+    }
+    void display(){
+        if(root == nullptr){
+            throw std::invalid_argument("root is not initialized\n");
+        }
+        else{
+            display(root);
+        }
+    }
+    void displayPreOrder(){
+        if(root == nullptr){
+            throw std::invalid_argument("root is not initialized\n");
+        }
+        else{
+            displayPreOrder(root);
+        }
+    }
+    void clear(){
+        if(root){
+            root->killself();
+            root = nullptr;
+        }
+    }
+    ~AVL(){clear();}
 private:
-    Node<T>* front = nullptr;
-    Node<T>* rear = nullptr;
-    int size = 0;
-
-public:
-    T front_() {
-        return front->data;
-    }
-
-    T rear_() {
-        return rear->data;
-    }
-
-    bool empty() {
-        return front == nullptr;
-    }
-
-    void push_back(T value) {
-        Node<T>* newNode = new Node<T>;
-        newNode->data = value;
-        newNode->next = nullptr;
-        newNode->prev = rear;
-
-        if (rear == nullptr) {
-            front = newNode;
-        } else {
-            rear->next = newNode;
+    void insert(NodeBT<T>*& node,T value){
+        if(node == nullptr){
+            node = new NodeBT<T>(value);
         }
-        rear = newNode;
-        size++;
+        else if(node->data < value){insert(node->right,value);}
+        else if(node->data > value){insert(node->left,value);}        
+        updateheight(node);
+        balancear(node);
+
     }
-
-    void pop_front() {
-        if (front == nullptr) {
-            return;
-        }
-        Node<T>* temp = front;
-        front = front->next;
-        if (front == nullptr) {
-            rear = nullptr;
-        } else {
-            front->prev = nullptr;
-        }
-        delete temp;
-        size--;
-    }
-
-    int getSize() const {
-        return size;
-    }
-};
-
-template<typename T>
-class queue{
-    Double_Linked_List<T> queue_;
-    int max_size;
-
-public:
-    queue(int size){
-        max_size = size;
-    }
-
-    bool isempty() {
-        return queue_.empty();
-    }
-
-    bool isfull() const {
-        return queue_.getSize() == max_size;
-    }
-
-    T front(){
-        return queue_.front_();
-    }
-
-    void enqueue(T val) {
-        if (isfull()) {
-            return;
-        }
-        queue_.push_back(val);
-    }
-
-    void dequeue() {
-        if (isempty()) {
-            return;
-        }
-        queue_.pop_front();
-    }
-
-    int getSize() const {
-        return queue_.getSize();
-    }
-};
-
-
-
-
-template<typename T>
-struct NodeAVL {
-    NodeAVL* right = nullptr;
-    NodeAVL* left = nullptr;
-    T data = T();
-    int hb = 0;
-};
-
-template<typename T>
-class AVL {
-    NodeAVL<T>* root = nullptr;
-
-public:
-    void insert(T val) {
-        vector<NodeAVL<T>*> path;
-        root = insert_function(root, val, path);
-
-        for (int i = path.size() - 1; i >= 0; --i) {
-            balancear(path[i]); //no hago el balanceo aca pq se hace en balancear
-        }
-    }
-
-    void remove(T val) {
-        root = remove_function(root, val);
-    }
-
-    bool find(T value) {
-        return find_function(root, value);
-    }
-
-    NodeAVL<T>* getRoot() const {
-        return root;
-    }
-
-    void BFS() const {
-        if (!root) {
-            return;//vacio
-        }
-
-        queue<NodeAVL<T>*> q(100); //le di size pq 100 como la otra vez
-        q.enqueue(root);
-
-        while (!q.isempty()) {
-            int LEVEL = q.getSize();
-            for (int i = 0; i < LEVEL; ++i) {
-                NodeAVL<T>* actual = q.front();
-                q.dequeue();
-                cout << actual->data << " ";
-
-                if (actual->left) {
-                    q.enqueue(actual->left);
-                }
-                if (actual->right) {
-                    q.enqueue(actual->right);
-                }
+    void remove(NodeBT<T>*& node,T value){
+        if(node == nullptr){return;}
+        else if(node->data < value){remove(node->right,value);}
+        else if(node->data > value){remove(node->left,value);}
+        else{
+            if(node->left == nullptr && node->right == nullptr){delete node; node = nullptr;}
+            else if(node->left == nullptr){
+                NodeBT<T>* tmp = node;
+                node = node->right;
+                delete tmp; 
             }
-            cout << endl;
-        }
-    }
-
-private:
-    NodeAVL<T>* insert_function(NodeAVL<T>* nodo, T val, vector<NodeAVL<T>*>& path) {
-        if (nodo == nullptr) {
-            auto* newNode = new NodeAVL<T>();
-            newNode->data = val;
-            newNode->hb = 0;
-            return newNode;
-        }
-
-        path.push_back(nodo);
-
-        if (val < nodo->data) {
-            nodo->left = insert_function(nodo->left, val, path);
-        } else if (val > nodo->data) {
-            nodo->right = insert_function(nodo->right, val, path);
-        }
-
-        return nodo;
-    }
-
-    int height(NodeAVL<T>* nodo) {
-        if (nodo == nullptr) {
-            return 0;
-        }
-        return 1 + max(height(nodo->left), height(nodo->right));
-    }
-
-    int funcion_hb(NodeAVL<T>* nodo) {
-        return height(nodo->left) - height(nodo->right); //formula
-    }
-
-    void balancear(NodeAVL<T>*& node) {
-        if (node == nullptr) return;
-
-        node->hb = funcion_hb(node);
-
-        if (node->hb == 2) {
-            if (funcion_hb(node->left) < 0) {
-                RotacionDobleIzquierdaDerecha(node);
-            } else {
-                RotacionDerecha(node);
+            else if(node->right == nullptr){
+                NodeBT<T>* tmp = node;
+                node = node->left;
+                delete tmp;
             }
-        } else if (node->hb == -2) {
-            if (funcion_hb(node->right) > 0) {
-                RotacionDobleDerechaIzquierda(node);
-            } else {
-                RotacionIzquierda(node);
+            else{
+                T temp = maxValue(node->left)->data;
+                node->data = temp;
+                remove(node->left,temp);
             }
         }
-    }
-
-    void RotacionIzquierda(NodeAVL<T>*& X) {
-        //viceversa de derecha
-        NodeAVL<T>* Z = X->right;
-        X->right = Z->left;
-        Z->left = X;
-        X = Z;
-    }
-
-    void RotacionDerecha(NodeAVL<T>*& Y) {
-        // izquierda (+) -> +
-        NodeAVL<T>* Z = Y->left;
-        Y->left = Z->right;
-        Z->right = Y;
-        Y = Z;
-    }
-
-    void RotacionDobleIzquierdaDerecha(NodeAVL<T>*& Y) {
-        //  (-) -> (+)
-        RotacionIzquierda(Y->left);
-        RotacionDerecha(Y);
-    }
-
-    void RotacionDobleDerechaIzquierda(NodeAVL<T>*& Y) {
-        //  (+) -> (-)
-        RotacionDerecha(Y->right);
-        RotacionIzquierda(Y);
-    }
-
-    NodeAVL<T>* remove_function(NodeAVL<T>* nodo, T val) {
-        if (nodo == nullptr) {
-            return nodo;
+        if(node){
+            updateheight(node);
+            balancear(node);
         }
-
-        if (val < nodo->data) {
-            nodo->left = remove_function(nodo->left, val);
-        } else if (val > nodo->data) {
-            nodo->right = remove_function(nodo->right, val);
-        } else {
-            //ENCONTRADO
-            if (nodo->left == nullptr && nodo->right == nullptr) {
-                delete nodo; //si no tiene hijos lo borro
-                nodo = nullptr;
-            } else if (nodo->left == nullptr) {
-                NodeAVL<T>* temp = nodo;
-                nodo = nodo->right; // solo hijo derecho hacen cambio
-                delete temp;
-            } else if (nodo->right == nullptr) {
-                NodeAVL<T>* temp = nodo;
-                nodo = nodo->left; // solo hijo derecho hacen cambio
-                delete temp;
-            } else {
-                // 2 hijos
-                NodeAVL<T>* pred = predecesor_funcion(nodo->left);
-                nodo->data = pred->data; // copio
-                //elimino el nodo repetido
-                nodo->left = remove_function(nodo->left, pred->data);
-            }
-        }
-
-        if (nodo == nullptr) {
-            return nodo;
-        }
-
-        //balanceo los nodos porque puede ser que se hayan cambiado sus hb
-        balancear(nodo);
-
-        return nodo;
     }
-
-    NodeAVL<T>* predecesor_funcion(NodeAVL<T>* node) {
-        while (node->right != nullptr) {
+    NodeBT<T>* find(NodeBT<T>* node, T value){
+        if(node == nullptr){
+            return nullptr;
+        }
+        if(node->data == value){
+            return node;
+        }
+        else if(node->data < value){
+            return find(node->right,value);
+        }
+        else {
+            return find(node->left,value);
+        }
+    }
+    int height(NodeBT<T>* node){
+        if(node == nullptr){
+            return -1;
+        }
+        return std::max(height(node->left),height(node->right)) + 1;
+    }
+    void updateheight(NodeBT<T>*& node){
+        node->height = std::max(height(node->left),height(node->right)) + 1;
+    }
+    NodeBT<T>* minValue(NodeBT<T>* node){
+        while(node->left != nullptr){
+            node = node->left;
+        }
+        return node;
+    }
+    NodeBT<T>* maxValue(NodeBT<T>* node){
+        while(node->right != nullptr){
             node = node->right;
         }
         return node;
     }
+    void display(NodeBT<T>* node){
+        if(node == nullptr){return;}
+        display(node->left);
+        cout<<node->data<<" ";
+        display(node->right);
+    }
+    void displayPreOrder(NodeBT<T>* node){
+        if(node == nullptr){return;}
+        cout<<node->data<<" ";
+        displayPreOrder(node->left);
+        displayPreOrder(node->right);
+    }
+    bool isBalanced(NodeBT<T>* node){
+        if(node == nullptr){return true;}
 
-    bool find_function(NodeAVL<T>* node, T value) {
-        if (node == nullptr) {
-            return false;
-        } else if (node->data == value) {
-            return true;
-        } else if (value < node->data) {
-            return find_function(node->left, value);
-        } else {
-            return find_function(node->right, value);
-        }
+        int left = height(node->left);
+        int right = height(node->right);
+        int difference = std::abs(left - right);
+        if(difference > 1){return false;}
+
+        return isBalanced(node->left) && isBalanced(node->right);
     }
 
-    //lo comento pq sino tengo que poner AVL()
-//    ~AVL() {
-//        limpiar(root);
-//    }
-//
-//    void limpiar(NodeAVL<T>* node) {
-//        if (node != nullptr) {
-//            limpiar(node->left);
-//            limpiar(node->right);
-//            delete node;
-//        }
-//    }
-
+    void rrota(NodeBT<T>*& node){
+        NodeBT<T>* hijo_izquierdo = node->left;
+        node->left = hijo_izquierdo->right;
+        hijo_izquierdo->right = node;
+        updateheight(node);
+        updateheight(hijo_izquierdo);
+        node = hijo_izquierdo;
+    }
+    void lrota(NodeBT<T>*& node){
+        NodeBT<T>* hijo_derecho = node->right;//hijo derecho de node
+        node->right = hijo_derecho->left;// hijo derecho de node es ahora el hijp izquierdo del hijo derecho
+        hijo_derecho->left = node;
+        updateheight(node);
+        updateheight(hijo_derecho);
+        node = hijo_derecho;//con esto se converva los enlaces con el padre de node
+    }
+    void balancear(NodeBT<T>*& node){
+        int hb = factorBalanceo(node);
+        if(hb > 1){
+            if(factorBalanceo(node->left)< 0){
+                lrota(node->left);
+            }
+            rrota(node);
+        }
+        else if(hb < -1){
+            if(factorBalanceo(node->right) > 0){
+                rrota(node->right);
+            }
+            lrota(node);
+        }
+    }
+    int factorBalanceo(NodeBT<T>* node){
+        return height(node->left) - height(node->right);
+    }
 };
 
-int main() {
-    AVL<int> avlTree;
-
-    avlTree.insert(7);
-    avlTree.insert(3);
-    avlTree.insert(10);
-    avlTree.insert(9);
-    avlTree.insert(11);
-    avlTree.remove(7);
 
 
-    cout << "Arbol AVL con BFS para comprobar" << endl;
-    avlTree.BFS();
+
+int main(){
+
+    AVL<int> MBAPPE;
+    
 
     return 0;
-}
+};
 
-//Esta forma de insertar es sin el vector que me gusta porque sigue la misma logica del remove que no usa un vector que mantiene record de adonde vamos 
-//y sino es recursiva pues cuando porfin termina de insertar, balancea el mismo y retorna subiendo por el camino, balancea, y retorna subiendo y asi hasta la raiz.
-//NodeAVL<T>* insert_function(NodeAVL<T>* nodo, T val) {
-//    
-//    if (nodo == nullptr) {
-//        auto* newNode = new NodeAVL<T>();
-//        newNode->data = val;
-//        newNode->hb = 0; /
-//        return newNode;
-//    }
-//
-//    if (val < nodo->data) {
-//        nodo->left = insert_function(nodo->left, val);
-//    } else if (val > nodo->data) {
-//        nodo->right = insert_function(nodo->right, val);
-//    } else {
-//        return nodo;
-//    }
-//
-//    nodo->hb = funcion_hb(nodo);
-//
-//    return balancear(nodo);
-//}
+
+
+
+
+
+
+
+
+
+
